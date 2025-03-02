@@ -25,11 +25,14 @@ void camera() {
       left = Serial3.read() | (Serial3.read() << 8);    // 2バイト
       center = Serial3.read() | (Serial3.read() << 8);  // 2バイト
       right = Serial3.read() | (Serial3.read() << 8);   // 2バイト
+      print[27] = left;
+      print[28] = center;
+      print[29] = right;
 
       // // 受信したデータをシリアルモニタに表示
-      // Serial.print("L: "); Serial.print(left);
-      // Serial.print(", C: "); Serial.print(center);
-      // Serial.print(", R: "); Serial.println(right);
+      //  Serial.print("L: "); Serial.print(left);
+      //  Serial.print(", C: "); Serial.print(center);
+      //  Serial.print(", R: "); Serial.println(right);
 
 
       ////色からの方向決定///
@@ -344,21 +347,20 @@ void loop() {
     print[19] = ir_angle;
     print[20] = ir_flag;
     print[21] = ir_dist;
-
     Line_Read();  ///ラインセンサ読み取り関数
-
+    camera();
     if (line_flag == 0) {
 
       if (ir_flag == 1) {
+        int move_angle = 0;
 
-
-        int move_angle = color_angle;
-
+        
         /////回り込み////
         if (ir_dist < 60) {
           if (ir_angle >= 0 && ir_angle <= 30 || ir_angle >= 340 && ir_angle <= 360) {
             camera();
-            move_angle = 0;
+            move_angle = color_angle;
+
             speed = 50;
           } else {
             if (ir_angle >= 180 && ir_angle < 340) {
@@ -375,6 +377,7 @@ void loop() {
               speed = 70;
             }
           }
+          print[26] = move_angle;
         } else {
           move_angle = ir_angle;
         }
@@ -402,7 +405,7 @@ void loop() {
 
 
     if (game_mode == 0) {
-      for (int i = 0; i < 26; i++) {
+      for (int i = 0; i < 30; i++) {
         switch (i) {
           case 0:
             Serial.print("L_val:");
@@ -428,12 +431,24 @@ void loop() {
           case 22:
             Serial.print("power ");
             break;
+          case 26:
+            Serial.print("move_angle ");
+            break;
+          case 27:
+            Serial.print("camera_left  ");
+            break;
+          case 28:
+            Serial.print("camera_center ");
+            break;
+          case 29:
+            Serial.print("camera_right ");
+            break;
         }
         Serial.print(print[i]);
         Serial.print(" , ");
       }
       Serial.println(" ");
-      delay(50);
+      delay(5);
     }
 
     if (digitalRead(buttonOff_Pin) == LOW) {
