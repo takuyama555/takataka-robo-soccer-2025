@@ -5,9 +5,14 @@ void setup() {
 }
 
 void loop() {
+line_read();
+delay(100);
+}
+void line_read(){
     int line_detected[4] = {0, 0, 0, 0}; // 各方向でラインがあるかどうか
     int line_flag = 0;
-
+    Serial2.write(253); // ヘッダー送信
+    delay(10); // 少し待ってからデータを受信（XIAOの処理時間確保）
     // Serial2からデータを受信する
     if (Serial2.available() > 0) {
         byte header = Serial2.read();  // ヘッダー（253）を読み取る
@@ -32,4 +37,5 @@ void loop() {
             Serial.println(line_flag);
         }
     }
+
 }
