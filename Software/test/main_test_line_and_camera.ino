@@ -14,9 +14,12 @@ double print[30];
 
 ///カメラ関連///
 int color_angle = 0;
+
 void camera() {
   uint8_t header;
   uint16_t left, center, right;
+   Serial3.write(254); // ヘッダー送信
+    delay(10); // 少し待ってからデータを受信（XIAOの処理時間確保）
 
   // シリアルバッファに7バイト以上あるか確認（ヘッダー + 3つの16ビットデータ）
   if (Serial3.available() >= 7) {
@@ -37,11 +40,11 @@ void camera() {
 
       ////色からの方向決定///
       if (left > center && left > right) {  ///左が最大
-        color_angle = 45;
+        color_angle = 275;
       } else if (center > left && center > right) {  //中央が最大
         color_angle = 0;
       } else if (right > left && right > center) {  //右が最大
-        color_angle = 275;
+        color_angle = 45;
       } else {
         color_angle = 0;
       }
@@ -49,6 +52,7 @@ void camera() {
   }else{
     color_angle = 0;
   }
+  print[26] = color_angle;
 }
 
 
@@ -377,7 +381,7 @@ void loop() {
               speed = 70;
             }
           }
-          print[26] = move_angle;
+          
         } else {
           move_angle = ir_angle;
         }
@@ -432,7 +436,7 @@ void loop() {
             Serial.print("power ");
             break;
           case 26:
-            Serial.print("move_angle ");
+            Serial.print("color_angle ");
             break;
           case 27:
             Serial.print("camera_left  ");
