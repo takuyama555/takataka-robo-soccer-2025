@@ -15,8 +15,8 @@ uart = UART(UART.UART1, 115200, 8, 0, 0, timeout=1000, read_buf_len=4096)
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)
 sensor.set_framesize(sensor.QVGA)  # 320x240
-sensor.set_auto_gain(0,8)         # オートゲインをオフ＆設定
-sensor.set_auto_whitebal(False, rgb_gain_db = (45, 0, 120)) # ゲインを設定しておく
+sensor.set_auto_gain(1,8)         # オートゲインをオフ＆設定
+sensor.set_auto_whitebal(False, rgb_gain_db = (80, 60, 90)) # ゲインを設定しておく
 sensor.set_brightness(3)  # 明るさを調整
 sensor.set_contrast(3)  # コントラストを強化
 sensor.set_saturation(3)  # 彩度を増加
@@ -24,7 +24,7 @@ sensor.set_saturation(3)  # 彩度を増加
 sensor.skip_frames(time=2000)
 
 # しきい値
-yellow_threshold = (34, 85, -128, -10, 52, 83) #黄色
+yellow_threshold = (91, 100, -62, 127, 96, 50) #黄色
 blue_threshold = (0, 70, -49, -6, -20, 4)   #青
 
 collow_threshold = (0, 0, 0, 0, 0, 0) #最終
@@ -35,6 +35,7 @@ section_width_right = 180  # 右端の境界
 
 while True:
     img = sensor.snapshot()  # 画像取得
+    img.rotation_corr(z_rotation=90)  # 画像を90度回転
     # 各色のピクセルカウント
     yellow_pixels, blue_pixels = 0, 0
 
