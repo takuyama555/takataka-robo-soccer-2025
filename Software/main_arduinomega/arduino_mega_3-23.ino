@@ -1,6 +1,6 @@
 ///シリアルプリント関連
 //////////////////重要！！！！////////////////////////////
-int game_mode = 0;  ///デバッグON---0 デバッグOFF---1
+int game_mode = 1;  ///デバッグON---1 デバッグOFF---0
 /////////////////////////////////////////////////////////
 
 
@@ -23,6 +23,7 @@ double print[30];
 ///カメラ関連///
 int color_angle = 0;
 int color_previous = 0;
+int goal_height = 0;
 const int HISTORY_SIZE = 5; // 保存する履歴のサイズ
 int color_history[HISTORY_SIZE] = {0}; // 過去のcolor_angleを保存する配列
 int move_angle = 0; // 進行方向の角度
@@ -42,10 +43,11 @@ void camera() {
       left = Serial3.read() | (Serial3.read() << 8);    // 2バイト
       center = Serial3.read() | (Serial3.read() << 8);  // 2バイト
       right = Serial3.read() | (Serial3.read() << 8);   // 2バイト
+      goal_height = Serial3.read() | (Serial3.read() << 8); 
       print[27] = left;
       print[28] = center;
       print[29] = right;
-
+      print[30] = goal_height;
       // // 受信したデータをシリアルモニタに表示
       //  Serial.print("L: "); Serial.print(left);
       //  Serial.print(", C: "); Serial.print(center);
@@ -144,8 +146,10 @@ const int line[4][4] = {
 int line_flag = 0;
 int line_counter = 0;
 
+
+///////////////////////////ラインセンサ(Seeed xiao)からの情報を読み取る////////
 void Line_Read() {
-    int line_detected[4] = {0, 0, 0, 0}; // 各方向でラインがあるかどうか
+    int line_detected[4] = {0, 0, 0, 0}; // 各方向でラインがあるかどうか保存する
     line_flag = 0;
     line_counter = 0;
     Serial2.write(253); // ヘッダー送信
@@ -163,6 +167,7 @@ void Line_Read() {
             line_detected[2] = buf[2]; // 後
             line_detected[3] = buf[3]; // 左
             line_flag = buf[4]; // 0: normal, 1: stop (0~254)
+
             if (line_detected[0] == 1){
             line_counter = 1;}
             if (line_detected[1] == 1){
@@ -257,6 +262,8 @@ double Cal_power(double degree, double speed, double gyro_value) {
   Drive_Motor(power1);
   //if(speed==0){Stop();}
 }
+
+/////////////////////////////////////////////////////////////////////////////////ジャイロ関係//////////////////////////////////////////////////////////////////////////////
 #include "MPU6050_6Axis_MotionApps20.h"
 MPU6050 mpu;
 // MPU control/status vars
@@ -306,6 +313,9 @@ int getYawPitchRoll() {
     return mpu_degree;
   }
 }
+
+
+
 // 定数の宣言
 #define SERIAL_BAUD 115200
 #define SERIAL1_BAUD 115200
@@ -365,7 +375,7 @@ double normalize_angle(double angle) {
   }
   return angle;
 };
-////////////////////////main_code///////////////////////////////////////
+////////////////////////メインセットアップ///////////////////////////////////////
 void setup() {
   Serial.begin(SERIAL_BAUD);
   //ir.begin(IR_BAUD);
@@ -419,7 +429,7 @@ void loop() {
         int move_angle = 0;
 
         
-        /////回り込み////
+        //////////////////////回り込み////////////////////
         if (ir_dist < 60) {
          
             if (ir_angle >= 180 && ir_angle < 340) {
@@ -430,8 +440,8 @@ void loop() {
               move_angle = 360 + move_invert_angle;
               if ( move_angle > 330){
                 speed = 100;
-                camera()
-                camera_angle()
+                camera();
+                camera_angle();
               }else{
               speed = 70;
               }
@@ -441,8 +451,8 @@ void loop() {
               move_angle = ir_angle + constrain(ir_angle * circ_exp * CIRC_WEIGHT, -90, 90);
               if ( move_angle < 30){
                 speed = 100;
-                camera()
-                camera_angle()
+                camera();
+                camera_angle();
               }else{
               speed = 70;
               }
@@ -486,8 +496,8 @@ void loop() {
 
 
 
-    if (game_mode == 0) {
-      for (int i = 0; i < 30; i++) {
+    if (game_mode == 1) {
+      for (int i = 0; i <= 30; i++) {
         switch (i) {
           case 0:
             Serial.print("L_val:");
@@ -524,6 +534,9 @@ void loop() {
             break;
           case 29:
             Serial.print("camera_right ");
+            break;
+          case 30:
+            Serial.print("goal_height ");
             break;
         }
         Serial.print(print[i]);
