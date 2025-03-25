@@ -43,6 +43,9 @@ while True:
     largest_green_blob = None
     if green_blobs:
         largest_green_blob = max(green_blobs, key=lambda b: b.pixels())
+    
+     # ゴールフラグの初期化
+    goal_flag = 0
 
     if largest_green_blob:
         # 緑のブロブの上端（y_min）を取得
@@ -68,6 +71,7 @@ while True:
                 closest_blue_blob = b
 
         if closest_blue_blob:
+            goal_flag = 1  # ゴールフラグを立てる
             # 最も近い青色ブロブの高さを求める
             goal_height = closest_blue_blob.h()
 
@@ -104,7 +108,7 @@ while True:
                     buf.extend(ustruct.pack('H', goal_height))  # 高さを送信
                     buf.extend(ustruct.pack('H', cx))  # 中心のx座標を送信
                     buf.extend(ustruct.pack('H', pixels))  # ピクセル数を送信 
-
+                    buf.extend(ustruct.pack('B', goal_flag))  # ゴールフラグを送信
                     # UARTで送信
                     uart.write(buf)
 
