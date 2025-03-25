@@ -19,7 +19,7 @@ int back_line = 0;
 int front_count_line = 0;
 int back_count_line = 0;
 //const int line_threshold[4] = { 999, 999, 999,999 };
-double print[32];
+double print[33];
 /*
 0-17:line_val,flag,counter
 18-
@@ -33,6 +33,7 @@ int goal_height1 = 0;
 int back_angle = 0;
 int goal_cx = 0;
 int goal_pix = 0;
+int goal_flag = 0;
 const int HISTORY_SIZE = 5;               // 保存する履歴のサイズ
 int color_history[HISTORY_SIZE] = { 0 };  // 過去のcolor_angleを保存する配列
 int move_angle = 0;                       // 進行方向の角度
@@ -59,12 +60,14 @@ void camera() {
       goal_height = Serial3.read() | (Serial3.read() << 8);
       goal_cx = Serial3.read() | (Serial3.read() << 8);
       goal_pix = Serial3.read() | (Serial3.read() << 8);
+      goal_flag = Serial3.read();
       print[27] = left;
       print[28] = center;
       print[29] = right;
       print[30] = goal_height;
       print[31] = goal_cx;
       print[32] = goal_pix;
+      print[33] = goal_flag;
       // // 受信したデータをシリアルモニタに表示
       //  Serial.print("L: "); Serial.print(left);
       //  Serial.print(", C: "); Serial.print(center);
@@ -567,7 +570,7 @@ void loop() {
 
 
     if (game_mode == 1) {
-      for (int i = 0; i <= 32; i++) {
+      for (int i = 0; i <= 33; i++) {
         switch (i) {
           case 0:
             Serial.print("L_val:");
@@ -613,6 +616,9 @@ void loop() {
             break;
           case 32:
             Serial.print("goal_pix ");
+            break;
+          case 33:
+            Serial.print("goal_flag ");
             break;
         }
         Serial.print(print[i]);
