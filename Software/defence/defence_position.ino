@@ -457,7 +457,7 @@ void loop() {
     }
     if (posi_flag == 0) {
       if (goal_height1 > 120) {
-        Cal_power(0, 40, gryo_val);
+        Cal_power(0, 30, gryo_val);
       } else if (goal_height1 < 70) {
         back_angle = print[26];
         Cal_power(back_angle, 60, gryo_val);
@@ -538,7 +538,6 @@ void loop() {
         if (front_line == 1) {
           Cal_power(180, normal_speed, gryo_val);
         } else if (back_line == 1) {
-          back_count_line = 0;
           Cal_power(0, 50, gryo_val);
         } else {
           Cal_power(270, normal_speed, gryo_val);
@@ -553,7 +552,6 @@ void loop() {
         if (front_line == 1) {
           Cal_power(180, normal_speed, gryo_val);
         } else if (back_line == 1) {
-          back_count_line = 0;
           Cal_power(0, 50, gryo_val);
         } else {
           Cal_power(90, normal_speed, gryo_val);
@@ -673,4 +671,5 @@ void loop() {
       Serial.println("Game start!");
     }
   }
+}
 }
