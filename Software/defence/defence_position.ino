@@ -536,9 +536,9 @@ void loop() {
     } else if (line_flag == 1 && line_counter != 3) {
       if (line_counter == 1) {
         if (goal_height1 > 120){
-          Cal_power(0, 30, gryo_val)
+          Cal_power(0, 30, gryo_val);
         }else{
-          Cal_power(180, normal_speed, gryo_val);
+          Cal_power(180, normal_speed, gryo_val);}
           
       } else if (line_counter == 2) {
         if (front_line == 1) {
@@ -646,12 +646,13 @@ void loop() {
     }
 
 
-  }  ///
 
 
 
 
-  if (digitalRead(buttonOn_Pin) == LOW) {
+  }
+
+if (digitalRead(buttonOn_Pin) == LOW) {
     int cnt = 0;
 
     while (1) {
@@ -683,5 +684,5 @@ void loop() {
       Serial.println("Game start!");
     }
   }
-}
+
 }
