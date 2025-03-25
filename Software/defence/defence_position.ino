@@ -529,9 +529,11 @@ void loop() {
 
     } else if (line_flag == 1 && line_counter != 3) {
       if (line_counter == 1) {
-        Cal_power(180, normal_speed, gryo_val);
-        front_line = 1;
-        front_count_line = 0;
+        if (goal_height1 > 120){
+          Cal_power(0, 30, gryo_val)
+        }else{
+          Cal_power(180, normal_speed, gryo_val);
+          
       } else if (line_counter == 2) {
         if (front_line == 1) {
           Cal_power(180, normal_speed, gryo_val);
