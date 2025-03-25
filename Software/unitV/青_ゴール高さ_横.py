@@ -1,5 +1,4 @@
 import sensor
-import image
 import time
 import machine
 import ustruct
@@ -103,6 +102,8 @@ while True:
                     buf.extend(ustruct.pack('H', center_count))  # 中央カウント
                     buf.extend(ustruct.pack('H', right_count))  # 右カウント
                     buf.extend(ustruct.pack('H', (goal_height))  # 高さを送信
+                    buf.extend(ustruct.pack('H', pixels))  #　総ピクセル数を送信
+                    buf.extend(ustruct.pack('H', cx))  # 中心のx座標を送信
 
                     # UARTで送信
                     uart.write(buf)
