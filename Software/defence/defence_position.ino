@@ -464,7 +464,7 @@ void loop() {
     } else {
       posi_flag = 0;
     }
-    if (posi_flag == 0) {
+    if (posi_flag == 0 && goal_flag == 1) {
       if (goal_height1 > 120) {
         Cal_power(0, 30, gryo_val);
       } else if (goal_height1 < 70) {
