@@ -493,7 +493,7 @@ void loop() {
         } else {  // IRフラグがゼロの時はジャイロだけ動作させる
           Cal_power(ir_angle, 0, gryo_val);
         }
-      } else if (line_flag == 1 && line_counter == 3) {  ///後ろが反応していたら斜め前に移動する
+      } else if (line_flag == 1 && line_counter == 3 ) {  ///後ろが反応していたら斜め前に移動する
         back_line = 1;
         back_count_line = 1;
         if (ir_flag == 1) {
