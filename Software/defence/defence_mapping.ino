@@ -601,7 +601,9 @@ void loop() {
           Cal_power(180, normal_speed, gryo_val);
         }
       } else if (line_counter == 2) {
-        
+        if (goal_cx > -120 && goal_cx < 120) {
+        posi_flag = 79 ;
+        }
         if (front_line == 1) {
           Cal_power(180, normal_speed, gryo_val);
         } else if (back_line == 1) {
@@ -610,6 +612,9 @@ void loop() {
           Cal_power(270, normal_speed, gryo_val);
         }
       } else if (line_counter == 3) {
+        if (goal_cx > -120 && goal_cx < 120) {
+          posi_flag = -79 ;
+          }
         if (line_trace == 1) {
           Cal_power(180, 30, gryo_val);
         } else {
