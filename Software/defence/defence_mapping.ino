@@ -12,7 +12,7 @@ int line_trace = 0;  ///ライントレース　ON---1 OFF---0
 #define wrap_side 0                                //25
 #define wrap_back 0                                //30
 #define line_p 55                                  //ラインの速さ
-double print[34];
+double print[35];
 const int line_threshold[4] = { 50, 50, 50, 50 };  //ライン判定の基準
 int front_line = 0;
 int back_line = 0;
@@ -33,6 +33,7 @@ int goal_height1 = 0;
 int back_angle = 0;
 int goal_cx = 0;
 int goal_pix = 0;
+int goal_flag = 0;
 const int HISTORY_SIZE = 5;               // 保存する履歴のサイズ
 int color_history[HISTORY_SIZE] = { 0 };  // 過去のcolor_angleを保存する配列
 int move_angle = 0;                       // 進行方向の角度
@@ -59,12 +60,14 @@ void camera() {
       goal_height = Serial3.read() | (Serial3.read() << 8);
       goal_cx = Serial3.read() | (Serial3.read() << 8);
       goal_pix = Serial3.read() | (Serial3.read() << 8);
+      goal_flag = Serial3.read();
       print[27] = left;
       print[28] = center;
       print[29] = right;
       print[30] = goal_height;
       print[31] = goal_cx;
       print[32] = goal_pix;
+      print[33] = goal_flag;
       // // 受信したデータをシリアルモニタに表示
       //  Serial.print("L: "); Serial.print(left);
       //  Serial.print(", C: "); Serial.print(center);
@@ -332,8 +335,8 @@ void updatePosition() {
   // Update position
   position_x += velocity_x * delta_time;
   position_y += velocity_y * delta_time;
-  print[33] = position_x;
-  print[34] = position_y;
+  print[34] = position_x;
+  print[35] = position_y;
   
 }
 
@@ -492,17 +495,19 @@ void loop() {
       }
     }
     if (goal_height1 < 115 && goal_height1 > 75) {
-      posi_flag = 1; //適正ポジションに着いたら1
+      
         if (fast_posi == 0) {
           position_x = 0.0; //最初だけマッピングの初期化
           position_y = 0.0;
         } 
       fast_posi = 1;
+      posi_flag = 1; //適正ポジションに着いたら1
     } else {
-      posi_flag = 0;
+      
       if(goal_height1 < 40){
         fast_posi = 0;
       }
+      posi_flag = 0;
     }
     if (posi_flag == 0) {
       if (goal_height1 > 120) {
@@ -562,7 +567,7 @@ void loop() {
           int move_angle = 0;
 
           if (ir_angle >= 0 && ir_angle <= 180) {
-            if (ir_angle >= 0 && ir_angle <= 30) {
+            if (ir_angle >= 0 && ir_angle <= 30 && goal_cx > -130) {
               sp = (ir_angle / 30.0) * 90;  // 0°で0%、30°で100%
             } else if (ir_angle > 30 && ir_angle <= 45) {
               sp = 90;  // 30°を超えたら固定
@@ -573,7 +578,7 @@ void loop() {
             }
             Cal_power(80, sp, gryo_val);  // 80°方向へ移動
 
-          } else if (ir_angle > 180 && ir_angle <= 360) {
+          } else if (ir_angle > 180 && ir_angle <= 360 && goal_cx < 130) {
             if (ir_angle >= 330 && ir_angle <= 360) {
               sp = ((360 - ir_angle) / 30.0) * 90;  // 330°で100%、360°で0%
             } else if (ir_angle >= 270 && ir_angle < 330) {
@@ -596,6 +601,7 @@ void loop() {
           Cal_power(180, normal_speed, gryo_val);
         }
       } else if (line_counter == 2) {
+        
         if (front_line == 1) {
           Cal_power(180, normal_speed, gryo_val);
         } else if (back_line == 1) {
@@ -622,7 +628,7 @@ void loop() {
 
 
     if (game_mode == 1) {
-      for (int i = 0; i <= 34; i++) {
+      for (int i = 0; i <= 35; i++) {
         switch (i) {
           case 0:
             Serial.print("L_val:");
@@ -670,9 +676,12 @@ void loop() {
             Serial.print("goal_pix ");
             break;
           case 33:
-            Serial.print("position_x ");
+            Serial.print("goal_flag ");
             break;
           case 34:
+            Serial.print("position_x ");
+            break;
+          case 35:
             Serial.print("position_y ");
             break;
         }
