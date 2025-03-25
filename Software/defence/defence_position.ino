@@ -506,7 +506,7 @@ void loop() {
           camera();
           int move_angle = 0;
 
-          if (ir_angle >= 0 && ir_angle <= 180) {
+          if (ir_angle >= 0 && ir_angle <= 180 && goal_cx > -130) {
             if (ir_angle >= 0 && ir_angle <= 30) {
               sp = (ir_angle / 30.0) * 90;  // 0°で0%、30°で100%
             } else if (ir_angle > 30 && ir_angle <= 45) {
@@ -518,7 +518,7 @@ void loop() {
             }
             Cal_power(80, sp, gryo_val);  // 80°方向へ移動
 
-          } else if (ir_angle > 180 && ir_angle <= 360) {
+          } else if (ir_angle > 180 && ir_angle <= 360 && goal_cx < 130) {
             if (ir_angle >= 330 && ir_angle <= 360) {
               sp = ((360 - ir_angle) / 30.0) * 90;  // 330°で100%、360°で0%
             } else if (ir_angle >= 270 && ir_angle < 330) {
