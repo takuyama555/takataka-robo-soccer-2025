@@ -26,6 +26,7 @@ double print[33];
 */
 
 ///カメラ関連///
+
 int color_angle = 0;
 int color_previous = 0;
 int goal_height = 0;
@@ -34,19 +35,32 @@ int back_angle = 0;
 int goal_cx = 0;
 int goal_pix = 0;
 int goal_flag = 0;
+int lastGoalFlagTime = 0;
+int first_flag = 0;
+const unsigned long goalFlagDuration = 150;  // 150ms
 const int HISTORY_SIZE = 5;               // 保存する履歴のサイズ
 int color_history[HISTORY_SIZE] = { 0 };  // 過去のcolor_angleを保存する配列
 int move_angle = 0;                       // 進行方向の角度
 int history_index = 0;                    // 配列の挿入位置を管理
+int last_left = 0;
+int last_center = 0;
+int last_right = 0;
+
+// グローバル変数としてロボットの現在位置を保持
+double position_x = 0.0;  // ロボットの現在のX座標
+double position_y = 0.0;  // ロボットの現在のY座標
 
 
 void camera() {
   uint8_t header;
   uint16_t left, center, right;
+  static int previous_goal_flag = 0;  // 前回のgoal_flagの状態を記録
+
   Serial3.write(254);  // ヘッダー送信
   unsigned long long request_time = micros();
   while (Serial3.available() > 0) {         // データを受信するまで待つ
     if (micros() - request_time > 10000) {  // 10ms以上データが来ない場合は受信を諦める
+      
       break;
     }
   }
@@ -58,70 +72,67 @@ void camera() {
       center = Serial3.read() | (Serial3.read() << 8);  // 2バイト
       right = Serial3.read() | (Serial3.read() << 8);   // 2バイト
       goal_height = Serial3.read() | (Serial3.read() << 8);
-      goal_cx = Serial3.read() | (Serial3.read() << 8);
-      goal_pix = Serial3.read() | (Serial3.read() << 8);
       goal_flag = Serial3.read();
       print[27] = left;
       print[28] = center;
       print[29] = right;
       print[30] = goal_height;
-      print[31] = goal_cx;
-      print[32] = goal_pix;
-      print[33] = goal_flag;
+      if (previous_goal_flag == 1 && goal_flag == 0) {
+        last_left = left;
+        last_center = center;
+        last_right = right;
+        // デバッグ用に保存した値を出力
+        Serial.println("Goal flag changed to 0. Saving values:");
+        Serial.print("Last Left: ");
+        Serial.println(last_left);
+        Serial.print("Last Center: ");
+        Serial.println(last_center);
+        Serial.print("Last Right: ");
+        Serial.println(last_right);
+        }
+      // 前回のgoal_flagを更新
+      previous_goal_flag = goal_flag;
+      
+      
       // // 受信したデータをシリアルモニタに表示
       //  Serial.print("L: "); Serial.print(left);
       //  Serial.print(", C: "); Serial.print(center);
       //Serial.print(", 高さ: "); Serial.println(goal_height);
-
-
-      ////色からの方向決定///
-      if (left > center && left > right) {  ///左が最大
-        color_angle = 160;
-      } else if (center > left && center > right) {  //中央が最大
-        color_angle = 190;
-      } else if (right > left && right > center) {  //右が最大
-        color_angle = 240;
-      } else {
-        color_angle = 0;
+      if (first_flag == 0){
+          if (left > center && left > right) {  ///左が最大
+          color_angle = 160;
+        } else if (center > left && center > right) {  //中央が最大
+          color_angle = 190;
+        } else if (right > left && right > center) {  //右が最大
+          color_angle = 240;
+        } else {
+          color_angle = 0;
+        }
+      }else if (first_flag == 1 || first_flag == 2){
+          ////色からの方向決定///
+        if (left > center && left > right) {  ///左が最大
+          position_x = -50;
+          color_angle = 90;
+        } else if (center > left && center > right) {  //中央が最大
+          color_angle = 190;
+        } else if (right > left && right > center) {  //右が最大
+          position_x = 50;
+          color_angle = 270;
+        } else {
+          color_angle = 0;
+        }
       }
+
+      
     }
   }
+
   print[26] = color_angle;
+  print[31] = goal_flag;
 }
 
 
-/////////////////////////////カメラ情報からmove_angleを設定  ///////////////////
-//////////////////////////////       今は使用していない      //////////////////
-void camera_angle() {
-  // color_history に最新の color_angle を追加（リングバッファ方式）
-  color_history[history_index] = color_angle;
-  history_index = (history_index + 1) % HISTORY_SIZE;  // インデックスを循環させる
 
-  // color_history 内で最も多く出現した color_angle を求める
-  int maxCount = 0;
-  int mostFrequentAngle = color_angle;
-
-  // 各色の出現回数をカウント
-  for (int i = 0; i < HISTORY_SIZE; i++) {
-    int currentAngle = color_history[i];
-    int count = 0;
-
-    // 同じ値の出現回数をカウント
-    for (int j = 0; j < HISTORY_SIZE; j++) {
-      if (color_history[j] == currentAngle) {
-        count++;
-      }
-    }
-
-    // 一番多く出現した値を記録
-    if (count > maxCount) {
-      maxCount = count;
-      mostFrequentAngle = currentAngle;
-    }
-  }
-
-  move_angle = mostFrequentAngle;
-}
 
 
 // 回り込みのための計算式の係数
@@ -239,59 +250,81 @@ void Drive_Motor(double power[]) {
 //それぞれのモーターの出力を計算
 double wrap[4];
 double Cal_power(double degree, double speed, double gyro_value) {
+
+  static unsigned long last_update_time = millis();  // 前回の更新時刻
+
+  // first_flag が 0 の場合、座標を初期化
+  // first_flag が 0 の場合、座標を初期化
+  if (first_flag == 1) {
+    position_x = 0.0;
+    position_y = 0.0;
+    first_flag = 2;  // 初期化が完了したらフラグを 1 に設定
+    Serial.println("Position reset to (0, 0)");
+  }
+
+  // 時間差を計算
+  unsigned long current_time = millis();
+  double delta_time = (current_time - last_update_time) / 1000.0;  // 秒単位に変換
+  last_update_time = current_time;
+
+  // delta_time が異常値の場合の対策
+  if (delta_time <= 0) {
+    delta_time = 0.001;  // 最小値を設定（1ms）
+  }
+
+  // ロボットの移動距離を計算
+  double distance = speed * delta_time;  // 移動距離 = 速度 × 時間
+
+  // 移動方向をラジアンに変換
+  double radian = degree * M_PI / 180.0;
+
+  // X, Y座標を更新
+  position_y += distance * cos(radian);
+  position_x += distance * sin(radian);
+
+  // デバッグ用に現在の位置を出力
+  // Serial.print("Position X: ");
+  // Serial.print(position_x);
+  // Serial.print(", Y: ");
+  // Serial.print(position_y);
+  // Serial.print(", first_flag");
+  // Serial.println(first_flag);
+
+  print[32] = position_x ;
+  // 既存のモーター制御ロジック
   double power1[4] = { 0, 0, 0, 0 };
   double power_revise[4] = { 1, 1, 1, 1 };
   double angle[4];
-  double maxvalue = 0;  //power[]の一番大きい値
+  double maxvalue = 0;  // power[]の一番大きい値
   double e = 0;
+
   if (abs(degree) <= 365) {
-    //進行角度（度数）,進行する速さ(0~128まで)
-    if (degree >= 60 && degree <= 120) {
-      wrap[0] = wrap_forward;
-      wrap[1] = wrap_forward;
-      wrap[2] = wrap_forward;
-      wrap[3] = wrap_forward;
-    } else if ((degree >= 30 && degree < 60) || (degree >= 240 && degree <= 270)) {
-      wrap[0] = -wrap_side;
-      wrap[1] = -wrap_side;
-      wrap[2] = wrap_side;
-      wrap[3] = wrap_side;
-    } else if ((degree > 120 && degree <= 150) || (degree > 270 && degree <= 300)) {
-      wrap[0] = wrap_side;
-      wrap[1] = wrap_side;
-      wrap[2] = -wrap_side;
-      wrap[3] = -wrap_side;
-    } else {  //-60～30,150-240
-      wrap[0] = -wrap_back;
-      wrap[1] = wrap_back;
-      wrap[2] = wrap_back;
-      wrap[3] = -wrap_back;
-    }
-    //double line_power[4];
     for (int i = 0; i < 4; i++) {
       angle[i] = (degree - (45 + 90 * i)) * pi / 180;
       power1[i] = sin(angle[i]);
-      //Serial.print(i);
-      //Serial.print(angle[i]*180/pi);
-      //Serial.print(" ");
-      //Serial.print(power1[i]);
-      //Serial.print(" , ");
       if (abs(maxvalue) < abs(power1[i])) {
         maxvalue = power1[i];
       }
     }
-    e = speed / abs(maxvalue);  //一番強いモーターの出力＝speedにする
+    e = speed / abs(maxvalue);  // 一番強いモーターの出力＝speedにする
   }
+
   for (int i = 0; i < 4; i++) {
-
     power1[i] = 128 + (power1[i] * e + gyro_value + wrap[i]) * power_revise[i];
-
-    //Serial.print(i);
     print[22 + i] = power1[i];
   }
-  Drive_Motor(power1);
-  //if(speed==0){Stop();}
+
+  Drive_Motor(power1);  // モーターを駆動
+
+  return 0;  // 必要に応じて返り値を変更
 }
+
+
+
+
+
+
+
 
 /////////////////////////////////////////////////////////////////////////////////ジャイロ関係//////////////////////////////////////////////////////////////////////////////
 #include "MPU6050_6Axis_MotionApps20.h"
@@ -398,7 +431,7 @@ void ir_uart_recv(void) {
 }
 double normalize_angle(double angle) {
   while (angle > PI) {
-    angle -= TWO_PI;
+    angle -= TWO_PI;  
   }
   while (angle <= -PI) {
     angle += TWO_PI;
@@ -459,22 +492,43 @@ void loop() {
         back_count_line = 0;
       }
     }
-    if (goal_height1 < 115 && goal_height1 > 75) {
+    if (goal_height1 < 130 && goal_height1 > 70) {
+      if (first_flag == 0){
+        position_x = 0;
+        position_y = 0;
+        first_flag = 1;
+      }
       posi_flag = 1;
     } else {
       posi_flag = 0;
     }
+    if (line_flag == 0 || line_counter == 3){
     if (posi_flag == 0 && goal_flag == 1) {
-      if (goal_height1 > 120) {
+      if (goal_height1 > 130) {
         Cal_power(0, 30, gryo_val);
       } else if (goal_height1 < 70) {
         back_angle = print[26];
-        Cal_power(back_angle, 60, gryo_val);
+        Cal_power(back_angle, 70, gryo_val);
       } else {
         Cal_power(0, 0, gryo_val);
       }
     }
-    if (posi_flag == 1) {
+     if (goal_flag == 0){
+      Cal_power(0, 50, gryo_val);
+    }
+    
+    if (posi_flag == 1 && goal_flag == 1) {
+      if (ir_dist > 240 || ir_flag == 0){
+        if (position_x > 10){
+          Cal_power(270, 30, gryo_val);
+        }
+        else if (position_x < -10){
+          Cal_power(90, 30, gryo_val);
+        }
+        else{
+          Cal_power(0, 0, gryo_val);
+        }
+      }
       if (line_flag == 0 && line_counter != 3) {  // line_flag が 0で後ろ以外が反応してない時
         if (ir_flag == 1) {
           int move_angle = 0;
@@ -497,19 +551,18 @@ void loop() {
             } else {
               sp = 0;  // 270°で100%、360°で0%
             }
-            Cal_power(255, sp, gryo_val);  // 270°方向に動作
+            Cal_power(270, sp, gryo_val);  // 270°方向に動作
           }
-        } else {  // IRフラグがゼロの時はジャイロだけ動作させる
-          Cal_power(ir_angle, 0, gryo_val);
-        }
+        } 
       } else if (line_flag == 1 && line_counter == 3 ) {  ///後ろが反応していたら斜め前に移動する
         back_line = 1;
         back_count_line = 1;
+        position_y = 0;
         if (ir_flag == 1) {
           camera();
           int move_angle = 0;
 
-          if (ir_angle >= 0 && ir_angle <= 180 && goal_cx > -130) {
+          if (ir_angle >= 0 && ir_angle <= 180 ) {
             if (ir_angle >= 0 && ir_angle <= 30) {
               sp = (ir_angle / 30.0) * 90;  // 0°で0%、30°で100%
             } else if (ir_angle > 30 && ir_angle <= 45) {
@@ -521,7 +574,7 @@ void loop() {
             }
             Cal_power(80, sp, gryo_val);  // 80°方向へ移動
 
-          } else if (ir_angle > 180 && ir_angle <= 360 && goal_cx < 130) {
+          } else if (ir_angle > 180 && ir_angle <= 360 ) {
             if (ir_angle >= 330 && ir_angle <= 360) {
               sp = ((360 - ir_angle) / 30.0) * 90;  // 330°で100%、360°で0%
             } else if (ir_angle >= 270 && ir_angle < 330) {
@@ -536,7 +589,8 @@ void loop() {
         }
       }
 
-    } else if (line_flag == 1 && line_counter != 3) {
+    }
+    }else if (line_flag == 1 && line_counter != 3) {
       if (line_counter == 1) {
         if (goal_height1 > 120){
           Cal_power(0, 30, gryo_val);
@@ -612,13 +666,13 @@ void loop() {
             Serial.print("goal_height ");
             break;
           case 31:
-            Serial.print("goal_cx ");
+            Serial.print("goal_flag ");
             break;
           case 32:
-            Serial.print("goal_pix ");
+            Serial.print("X:");
             break;
           case 33:
-            Serial.print("goal_flag ");
+            Serial.print("Y:");
             break;
         }
         Serial.print(print[i]);
