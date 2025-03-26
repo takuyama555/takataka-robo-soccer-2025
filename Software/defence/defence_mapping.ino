@@ -1,6 +1,6 @@
 /////////////////////////ゲームモード関連///////////////////////////
 ////////////////////////////重要！！！！////////////////////////////
-int game_mode = 1;   ///デバッグON---1 デバッグOFF---0
+int game_mode = 0;   ///デバッグON---1 デバッグOFF---0
 int line_trace = 0;  ///ライントレース　ON---1 OFF---0
 
 /////////////////////////////////////////////////////////
@@ -315,9 +315,9 @@ unsigned long last_update_time = 0;  // Timestamp of the last update
 
 // Function to update position based on MPU6050 data
 void updatePosition() {
-  unsigned long current_time = millis();
-  double delta_time = (current_time - last_update_time) / 1000.0;  // Convert to seconds
-  last_update_time = current_time;
+  unsigned long map_current_time = millis();
+  double delta_time = (map_current_time - map_last_update_time) / 1000.0;  // Convert to seconds
+  map_last_update_time = map_current_time;
 
   // Get yaw, pitch, and roll
   double yaw = ypr[0] * 180 / M_PI;  // Convert to degrees
@@ -633,7 +633,7 @@ void loop() {
 
 
     if (game_mode == 1) {
-      for (int i = 0; i <= 35; i++) {
+      for (int i = 16; i <= 35; i++) {
         switch (i) {
           case 0:
             Serial.print("L_val:");
