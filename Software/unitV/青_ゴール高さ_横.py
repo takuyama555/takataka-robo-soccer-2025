@@ -1,4 +1,5 @@
 import sensor
+import image
 import time
 import machine
 import ustruct
@@ -25,8 +26,8 @@ sensor.set_vflip(True)    # 垂直反転
 sensor.skip_frames(time=2000)
 
 # 青色と緑色のしきい値
-blue_threshold = (24, 79, 81, -69, -115, -18)
-green_threshold = (62, 84, -28, -69, 75, 27)
+blue_threshold = (24, 78, 14, -27, -108, -8)
+green_threshold = (62, 84, -28, -69, 76, 25)
 
 # セクションの幅
 section_width_left = 140  # 左端の境界
@@ -34,7 +35,7 @@ section_width_right = 180  # 右端の境界
 
 while True:
     img = sensor.snapshot()  # 画像取得
-    img.rotation_corr(z_rotation=-90)
+    img.rotation_corr(z_rotation=90)
 
     # 緑色のブロブを取得
     green_blobs = img.find_blobs([green_threshold], pixels_threshold=50, area_threshold=50, merge=True)
@@ -43,9 +44,6 @@ while True:
     largest_green_blob = None
     if green_blobs:
         largest_green_blob = max(green_blobs, key=lambda b: b.pixels())
-    
-     # ゴールフラグの初期化
-    goal_flag = 0
 
     if largest_green_blob:
         # 緑のブロブの上端（y_min）を取得
@@ -71,7 +69,6 @@ while True:
                 closest_blue_blob = b
 
         if closest_blue_blob:
-            goal_flag = 1  # ゴールフラグを立てる
             # 最も近い青色ブロブの高さを求める
             goal_height = closest_blue_blob.h()
 
@@ -94,7 +91,7 @@ while True:
             # シリアル出力（デバッグ用）
             print("count_L:", left_count, "C:", center_count, "R:", right_count)
             print("Blue Goal Height:", goal_height)
-
+            
             # UARTからデータを受信する
             if uart.any():
                 header = uart.read(1)  # ヘッダー（1バイト）を受信
@@ -106,10 +103,9 @@ while True:
                     buf.extend(ustruct.pack('H', center_count))  # 中央カウント
                     buf.extend(ustruct.pack('H', right_count))  # 右カウント
                     buf.extend(ustruct.pack('H', goal_height))  # 高さを送信
-                    buf.extend(ustruct.pack('H', cx))  # 中心のx座標を送信
-                    buf.extend(ustruct.pack('H', pixels))  # ピクセル数を送信 
-                    buf.extend(ustruct.pack('B', goal_flag))  # ゴールフラグを送信
+                    buf.extend(ustruct.pack('H', cx))
+
                     # UARTで送信
                     uart.write(buf)
-
+        if  
     time.sleep_ms(10)  # 少し待機して負荷を下げる
