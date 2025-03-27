@@ -13,8 +13,9 @@ int game_mode = 1;  ///デバッグON---1 デバッグOFF---0
 const int line_threshold[4] = { 50, 50, 50, 50 };  //ライン判定の基準
 int front_line = 0;
 int count_line = 0;
+int front_ir = 0;
 //const int line_threshold[4] = { 999, 999, 999,999 };
-double print[30];
+double print[32];
 /*
 0-17:line_val,flag,counter
 18-
@@ -431,13 +432,17 @@ void loop() {
             count_line = 0;
         }
     }
-    Serial.println(count_line);
+    //Serial.println(count_line);
 
     
     if (line_flag == 0) {
 
+      front_ir = analogRead(A0); // A0ピンからデータを読み取り、front_irに保存
+      //Serial.println(front_ir);
+      print[31] = front_ir;
       if (ir_flag == 1) {
         camera();
+
         int move_angle = 0;
 
         
@@ -453,7 +458,7 @@ void loop() {
               if (move_angle > 270  && move_angle < 340){
                 speed = 60;
               }
-              if ( move_angle > 340){
+              if ( move_angle > 340 && front_ir > 950 && front_ir < 990){
                 speed = 60;
                 
                 move_angle = print[26];
@@ -467,7 +472,7 @@ void loop() {
               if (move_angle > 20  && move_angle < 45){
                 speed = 60;
               }
-              if ( move_angle < 20){
+              if ( move_angle < 20 && front_ir > 950 && front_ir < 990){
                 speed = 60;
                
                 move_angle = print[26];
@@ -480,8 +485,8 @@ void loop() {
         } else {
           move_angle = ir_angle;
         }
-        Serial.print(move_angle);
-        Serial.println(" ");
+        //Serial.print(move_angle);
+        //Serial.println(" ");
 
         Cal_power(move_angle, speed, gryo_val);
       } else {  ///IRフラグがゼロの時はジャイロだけ動作させる
@@ -515,7 +520,7 @@ void loop() {
 
 
     if (game_mode == 1) {
-      for (int i = 0; i <= 30; i++) {
+      for (int i = 0; i <= 31; i++) {
         switch (i) {
           case 0:
             Serial.print("L_val:");
@@ -556,6 +561,10 @@ void loop() {
           case 30:
             Serial.print("goal_height ");
             break;
+          case 31:
+            Serial.print("front_ir ");
+            break;
+
         }
         Serial.print(print[i]);
         Serial.print(" , ");
