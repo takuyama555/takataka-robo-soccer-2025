@@ -1,7 +1,7 @@
 
 /////////////////////////ゲームモード関連///////////////////////////
 ////////////////////////////重要！！！！////////////////////////////
-int game_mode = 1;   ///デバッグON---1 デバッグOFF---0
+int game_mode = 0;   ///デバッグON---1 デバッグOFF---0
 int line_trace = 0;  ///ライントレース　ON---1 OFF---0
 
 /////////////////////////////////////////////////////////
@@ -45,7 +45,8 @@ int history_index = 0;                    // 配列の挿入位置を管理
 int last_left = 0;
 int last_center = 0;
 int last_right = 0;
-
+int right_camera_flag = 0;
+int left_camera_flag = 0;
 // グローバル変数としてロボットの現在位置を保持
 double position_x = 0.0;  // ロボットの現在のX座標
 double position_y = 0.0;  // ロボットの現在のY座標
@@ -78,19 +79,19 @@ void camera() {
       print[28] = center;
       print[29] = right;
       print[30] = goal_height;
-      print[32] = goal_cx
+      print[32] = goal_cx;
       if (previous_goal_flag == 1 && goal_flag == 0) {
         last_left = left;
         last_center = center;
         last_right = right;
         // デバッグ用に保存した値を出力
-        Serial.println("Goal flag changed to 0. Saving values:");
-        Serial.print("Last Left: ");
-        Serial.println(last_left);
-        Serial.print("Last Center: ");
-        Serial.println(last_center);
-        Serial.print("Last Right: ");
-        Serial.println(last_right);
+        // Serial.println("Goal flag changed to 0. Saving values:");
+        // Serial.print("Last Left: ");
+        // Serial.println(last_left);
+        // Serial.print("Last Center: ");
+        // Serial.println(last_center);
+        // Serial.print("Last Right: ");
+        // Serial.println(last_right);
         }
       // 前回のgoal_flagを更新
       previous_goal_flag = goal_flag;
@@ -100,7 +101,7 @@ void camera() {
       //  Serial.print("L: "); Serial.print(left);
       //  Serial.print(", C: "); Serial.print(center);
       //Serial.print(", 高さ: "); Serial.println(goal_height);
-      if (first_flag == 0){
+      if (first_flag == 0 || first_flag == 1){
           if (left > center && left > right) {  ///左が最大
           color_angle = 160;
         } else if (center > left && center > right) {  //中央が最大
@@ -110,7 +111,7 @@ void camera() {
         } else {
           color_angle = 0;
         }
-      }else if (first_flag == 1 || first_flag == 2){
+      }else if (first_flag == 2){
           ////色からの方向決定///
         if (left > center && left > right) {  ///左が最大
           position_x = -50;
@@ -119,7 +120,7 @@ void camera() {
           color_angle = 190;
         } else if (right > left && right > center) {  //右が最大
           position_x = 50;
-          color_angle = 270;
+          color_angle = 260;
         } else {
           color_angle = 0;
         }
@@ -131,6 +132,7 @@ void camera() {
 
   print[26] = color_angle;
   print[31] = goal_flag;
+  // Serial.println(first_flag);
 }
 
 
@@ -292,7 +294,7 @@ double Cal_power(double degree, double speed, double gyro_value) {
   // Serial.print(", first_flag");
   // Serial.println(first_flag);
 
-  print[33] = position_x ;
+
   // 既存のモーター制御ロジック
   double power1[4] = { 0, 0, 0, 0 };
   double power_revise[4] = { 1, 1, 1, 1 };
@@ -515,14 +517,14 @@ void loop() {
         Cal_power(0, 0, gryo_val);
       }
     }
-     if (goal_flag == 0){
+     if (goal_flag == 0 && first_flag != 0){
       Cal_power(0, 50, gryo_val);
     }
     
     if (posi_flag == 1 && goal_flag == 1) {
       if (ir_dist > 240 || ir_flag == 0){
         if (position_x > 10){
-          Cal_power(270, 30, gryo_val);
+          Cal_power(250, 30, gryo_val);
         }
         else if (position_x < -10){
           Cal_power(90, 30, gryo_val);
@@ -531,21 +533,39 @@ void loop() {
           Cal_power(0, 0, gryo_val);
         }
       }
-      if (line_flag == 0 && line_counter != 3) {  // line_flag が 0で後ろ以外が反応してない時
+      else if ( goal_cx < 60){
+         Cal_power(90, 30, gryo_val);
+         position_x = -50;
+         left_camera_flag = 1;
+
+
+      }else if ( goal_cx > 255){
+         Cal_power(270, 30, gryo_val);
+         position_x = 50;
+         right_camera_flag = 1;
+      }else if (line_flag == 0 && line_counter != 3) {  // line_flag が 0で後ろ以外が反応してない時
         if (ir_flag == 1) {
           int move_angle = 0;
 
-          if (ir_angle >= 0 && ir_angle <= 180) {
-            if (ir_angle >= 5 && ir_angle <= 30) {
-              sp = (ir_angle / 30.0) * 88;  // 0°で0%、30°で100%
-            } else if (ir_angle > 30 && ir_angle <= 90) {
-              sp = 85;
-            } else {
-              sp = 0;  // 90°で100%、180°で0%
+          if (ir_angle >= 0 && ir_angle <= 180 ) {
+            if (ir_angle > 40){
+              left_camera_flag = 0;
             }
-            Cal_power(90, sp, gryo_val);  // 90°方向へ移動
-
+            if(right_camera_flag == 0){
+              if (ir_angle >= 5 && ir_angle <= 30) {
+                sp = (ir_angle / 30.0) * 88;  // 0°で0%、30°で100%
+              } else if (ir_angle > 30 && ir_angle <= 90) {
+                sp = 85;
+              } else {
+                sp = 0;  // 90°で100%、180°で0%
+              }
+              Cal_power(90, sp, gryo_val);  // 90°方向へ移動
+              }
           } else if (ir_angle > 180 && ir_angle <= 360) {
+            if (ir_angle <320){
+              right_camera_flag = 0;
+            }
+            if(left_camera_flag == 0){
             if (ir_angle >= 330 && ir_angle <= 355) {
               sp = ((360 - ir_angle) / 30.0) * 85;  // 330°で100%、360°で0%
             } else if (ir_angle >= 270 && ir_angle < 330) {
@@ -553,51 +573,60 @@ void loop() {
             } else {
               sp = 0;  // 270°で100%、360°で0%
             }
-            Cal_power(270, sp, gryo_val);  // 270°方向に動作
+            Cal_power(260, sp, gryo_val);  // 270°方向に動作
           }
-        } 
+        }}
       } else if (line_flag == 1 && line_counter == 3 ) {  ///後ろが反応していたら斜め前に移動する
         back_line = 1;
         back_count_line = 1;
         position_y = 0;
         if (ir_flag == 1) {
+
           camera();
           int move_angle = 0;
 
           if (ir_angle >= 0 && ir_angle <= 180 ) {
-            if (ir_angle >= 0 && ir_angle <= 30) {
-              sp = (ir_angle / 30.0) * 90;  // 0°で0%、30°で100%
-            } else if (ir_angle > 30 && ir_angle <= 45) {
-              sp = 90;  // 30°を超えたら固定
-            } else if (ir_angle > 45 && ir_angle <= 90) {
-              sp = 90;
-            } else {
-              sp = 0;  // 90°で100%、180°で0%
+            if (ir_angle > 40){
+              left_camera_flag = 0;
             }
-            Cal_power(80, sp, gryo_val);  // 80°方向へ移動
+            if (right_camera_flag == 0){
+              if (ir_angle >= 0 && ir_angle <= 30) {
+                sp = (ir_angle / 30.0) * 90;  // 0°で0%、30°で100%
+              } else if (ir_angle > 30 && ir_angle <= 45) {
+                sp = 90;  // 30°を超えたら固定
+              } else if (ir_angle > 45 && ir_angle <= 90) {
+                sp = 90;
+              } else {
+                sp = 0;  // 90°で100%、180°で0%
+              }
+              Cal_power(80, sp, gryo_val);  // 80°方向へ移動
 
-          } else if (ir_angle > 180 && ir_angle <= 360 ) {
-            if (ir_angle >= 330 && ir_angle <= 360) {
-              sp = ((360 - ir_angle) / 30.0) * 90;  // 330°で100%、360°で0%
-            } else if (ir_angle >= 270 && ir_angle < 330) {
-              sp = 90;
-            } else {
-              sp = 0;  // 270°で100%、360°で0%
+          }} else if (ir_angle > 180 && ir_angle <= 360 ) {
+            if (ir_angle <320){
+              right_camera_flag = 0;
             }
-            Cal_power(280, sp, gryo_val);  // 280°方向に動作
-          }
-        } else {  // IRフラグがゼロの時はジャイロだけ動作させる
+            if (left_camera_flag == 0){
+              if (ir_angle >= 330 && ir_angle <= 360) {
+                sp = ((360 - ir_angle) / 30.0) * 90;  // 330°で100%、360°で0%
+              } else if (ir_angle >= 270 && ir_angle < 330) {
+                sp = 90;
+              } else {
+                sp = 0;  // 270°で100%、360°で0%
+              }
+              Cal_power(280, sp, gryo_val);  // 280°方向に動作
+            }
+        }} else {  // IRフラグがゼロの時はジャイロだけ動作させる
           Cal_power(ir_angle, 0, gryo_val);
         }
       }
 
     }
     }else if (line_flag == 1 && line_counter != 3) {
-      if (line_counter == 1) {
-        if (goal_height1 > 120){
+      if (line_counter == 1 && goal_height < 70) {
+        if (goal_height1 > 70){
           Cal_power(0, 30, gryo_val);
         }else{
-          Cal_power(180, normal_speed, gryo_val);}
+          Cal_power(0, normal_speed, gryo_val);}
           
       } else if (line_counter == 2) {
         if (front_line == 1) {
@@ -608,25 +637,23 @@ void loop() {
           Cal_power(270, normal_speed, gryo_val);
         }
       } else if (line_counter == 3) {
-        if (line_trace == 1) {
-          Cal_power(180, 30, gryo_val);
-        } else {
           Cal_power(0, 30, gryo_val);
-        }
+          back_line = 1;
+          back_count_line = 1;
       } else if (line_counter == 4) {
-        if (front_line == 1) {
-          Cal_power(180, normal_speed, gryo_val);
-        } else if (back_line == 1) {
-          Cal_power(0, 50, gryo_val);
-        } else {
-          Cal_power(90, normal_speed, gryo_val);
-        }
+          if (front_line == 1) {
+            Cal_power(180, normal_speed, gryo_val);
+          } else if (back_line == 1) {
+            Cal_power(0, 50, gryo_val);
+          } else {
+            Cal_power(90, normal_speed, gryo_val);
+          }
       }
     }
 
 
     if (game_mode == 1) {
-      for (int i = 0; i <= 33; i++) {
+      for (int i = 0; i <= 32; i++) {
         switch (i) {
           case 0:
             Serial.print("L_val:");
@@ -711,7 +738,10 @@ void loop() {
 
 
 
-
+          Serial.print("右フラグ:");
+          Serial.print(right_camera_flag);
+          Serial.print("左フラグ:");
+          Serial.println(left_camera_flag);
   }
 
 if (digitalRead(buttonOn_Pin) == LOW) {
@@ -743,6 +773,7 @@ if (digitalRead(buttonOn_Pin) == LOW) {
       Cal_power(0, normal_speed, gryo_val);
       game_start = 0;
       game_flag = 1;
+      first_flag = 0;
       Serial.println("Game start!");
     }
   }
