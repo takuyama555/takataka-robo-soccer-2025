@@ -543,7 +543,8 @@ void loop() {
          Cal_power(270, 30, gryo_val);
          position_x = 50;
          right_camera_flag = 1;
-      }else if (line_flag == 0 && line_counter != 3) {  // line_flag が 0で後ろ以外が反応してない時
+      }
+      else if (line_flag == 0 && line_counter != 3) {  // line_flag が 0で後ろ以外が反応してない時
         if (ir_flag == 1) {
           int move_angle = 0;
 
@@ -733,7 +734,10 @@ void loop() {
         Serial.println("Game Stop");
       }
     }
-
+    if (goal_cx >= 80 && goal_cx <= 235){
+        left_camera_flag = 0;
+        right_camera_flag = 0;
+      }
 
 
 
