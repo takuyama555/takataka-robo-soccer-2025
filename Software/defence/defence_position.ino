@@ -72,11 +72,13 @@ void camera() {
       center = Serial3.read() | (Serial3.read() << 8);  // 2バイト
       right = Serial3.read() | (Serial3.read() << 8);   // 2バイト
       goal_height = Serial3.read() | (Serial3.read() << 8);
+      goal_cx = Serial3.read() | (Serial3.read() << 8);
       goal_flag = Serial3.read();
       print[27] = left;
       print[28] = center;
       print[29] = right;
       print[30] = goal_height;
+      print[32] = goal_cx
       if (previous_goal_flag == 1 && goal_flag == 0) {
         last_left = left;
         last_center = center;
@@ -290,7 +292,7 @@ double Cal_power(double degree, double speed, double gyro_value) {
   // Serial.print(", first_flag");
   // Serial.println(first_flag);
 
-  print[32] = position_x ;
+  print[33] = position_x ;
   // 既存のモーター制御ロジック
   double power1[4] = { 0, 0, 0, 0 };
   double power_revise[4] = { 1, 1, 1, 1 };
@@ -669,10 +671,10 @@ void loop() {
             Serial.print("goal_flag ");
             break;
           case 32:
-            Serial.print("X:");
+            Serial.print("goal_cx:");
             break;
           case 33:
-            Serial.print("Y:");
+            Serial.print("X:");
             break;
         }
         Serial.print(print[i]);
