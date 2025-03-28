@@ -359,8 +359,8 @@ void ir_uart_recv(void) {
     if(front_ir < 975 && front_ir > 950){
       ir_angle =10;
     }
-    if(front_ir < 950 && front_ir > 800){
-      ir_angle =45;
+    if(front_ir < 950 && front_ir > 600){
+      ir_angle =30;
     }
   }else 
   if(ir_angle > 330 && ir_angle < 360 && ir_dist < 40){
